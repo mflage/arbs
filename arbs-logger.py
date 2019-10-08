@@ -156,7 +156,7 @@ def main(arg):
                 # we don't have validation in place just yet
                 pass
 
-            db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S", songid)
+            db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S", songid))
 
             print("{} - {} ({})".format(currentsong["artist"],
                                         currentsong["title"],
