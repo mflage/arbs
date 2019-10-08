@@ -127,13 +127,32 @@ def main(arg):
                 print(currentsong["file"])
                 continue
 
+            now = datetime.datetime.now()
+
             filename = currentsong["file"]
 
             if filename.startswith("file://"):
                 filename = filename.replace("file://", "")
 
             song = db.getSong(filename)
-            print song
+
+            # song is not already added
+            if not song:
+
+                artistid = db.validateArtist(currentsong["artist"])
+
+                db.addSong(artistid,
+                           currentsong["title"],
+                           currentsong["time"],
+                           filename)
+
+                # we should now have a new song id
+                songid = db.getSongId(filename)
+            else:
+                # we don't have validation in place just yet
+                pass
+
+            db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S", songid)
 
             print("{} - {} ({})".format(currentsong["artist"],
                                         currentsong["title"],
