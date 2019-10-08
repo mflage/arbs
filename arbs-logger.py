@@ -127,6 +127,10 @@ def main(arg):
                 print(currentsong["file"])
                 continue
 
+            if "artist" not in currentsong.keys():
+                print(currentsong["file"])
+                continue
+
             now = datetime.datetime.now()
 
             filename = currentsong["file"]
