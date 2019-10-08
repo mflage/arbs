@@ -3,6 +3,7 @@
 import sys
 import yaml
 import mysql.connector
+import datetime
 
 from mpd import MPDClient
 
@@ -14,18 +15,18 @@ class PlaylistDB:
 
     def addPlaylist(self, timestamp, song):
         sql = "INSERT INTO playlist (date, song) VALUES (%s, %s)"
-        self.cur.execute(sql, (timestamp, song))
+        self.cur.execute(sql, [timestamp, song])
         self.con.commit()
 
     def addArtist(self, artist):
         sql = "INSERT INTO artists (artist) VALUES (%s)"
-        self.cur.execute(sql, (artist))
+        self.cur.execute(sql, [artist])
         self.con.commit()
 
     def addSong(self, artist, title, length, filename):
         sql = ("INSERT INTO songs (artist, title, length, filename) "
                "VALUES (%s, %s, %s, %s)")
-        self.cur.execute(sql, (artist, title, length, filename))
+        self.cur.execute(sql, [artist, title, length, filename])
         self.con.commit()
 
     # this will check if the artist is in the database, if not, add it
@@ -39,13 +40,13 @@ class PlaylistDB:
         sql = ("SELECT s.id, a.artist, s.title, s.length, s.filename "
                "FROM songs s, artists a "
                "WHERE s.artist = a.id AND filename = %s")
-        self.cur.execute(sql, (filename))
+        self.cur.execute(sql, [filename])
         row = self.cur.fetchone()
         return row
 
     def getSongId(self, filename):
         sql = "SELECT id FROM songs WHERE filename = %s"
-        self.cur.execute(sql, (filename))
+        self.cur.execute(sql, [filename])
         row = self.cur.fetchone()
         if not row:
             return None
@@ -54,7 +55,7 @@ class PlaylistDB:
 
     def getArtistId(self, artist):
         sql = "SELECT id FROM artists WHERE artist = %s"
-        self.cur.execute(sql, (artist))
+        self.cur.execute(sql, [artist])
         row = self.cur.fetchone()
         if not row:
             return None
@@ -69,7 +70,7 @@ class PlaylistDB:
 
     def update(self, songid, field, value):
         sql = "UPDATE songs SET " + field + " = %s WHERE id = %s"
-        self.cur.execute(sql, (value, songid))
+        self.cur.execute(sql, [value, songid])
         self.con.commit()
 
     def checkArtist(self, artist):
@@ -126,9 +127,18 @@ def main(arg):
                 print(currentsong["file"])
                 continue
 
+            filename = currentsong["file"]
+
+            if filename.startswith("file://"):
+                filename = filename.replace("file://", "")
+
+            song = db.getSong(filename)
+            print song
+
             print("{} - {} ({})".format(currentsong["artist"],
                                         currentsong["title"],
-                                        currentsong["file"]))
+                                        filename)
+            )
 
 
 if __name__ == '__main__':
