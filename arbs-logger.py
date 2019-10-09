@@ -117,6 +117,12 @@ def main(arg):
     s.mount = cfg["stream"]["mount"]
     s.password = cfg["stream"]["password"]
 
+    try:
+        s.open()
+    # we can just ignore this - for some strange reason
+    except shout.ShoutException:
+        pass
+
     db = PlaylistDB(conn, cursor)
 
     # everything is set up, get ready to receive new events
