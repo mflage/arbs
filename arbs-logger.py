@@ -4,6 +4,7 @@ import sys
 import yaml
 import mysql.connector
 import datetime
+import shout
 
 from mpd import MPDClient
 
@@ -110,6 +111,12 @@ def main(arg):
 
     cursor = conn.cursor(buffered=True)
 
+    s = shout.Shout()
+    s.port = cfg["stream"]["port"]
+    s.host = cfg["stream"]["hostname"]
+    s.mount = cfg["stream"]["mount"]
+    s.password = cfg["stream"]["password"]
+
     db = PlaylistDB(conn, cursor)
 
     # everything is set up, get ready to receive new events
@@ -156,7 +163,11 @@ def main(arg):
                 # we don't have validation in place just yet
                 pass
 
-            db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S", songid))
+            db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S"), songid)
+
+            # update the stream metadata
+            s.set_metadata({"song": "{} - {}".format(currentsong["artist"],
+                                                     currentsong["title"]))
 
             print("{} - {} ({})".format(currentsong["artist"],
                                         currentsong["title"],
