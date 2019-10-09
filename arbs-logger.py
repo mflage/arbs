@@ -165,8 +165,12 @@ def main(arg):
             db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S"), songid)
 
             # update the stream metadata
-            s.set_metadata({"song": "{} - {}".format(currentsong["artist"],
-                                                     currentsong["title"]))
+            s.set_metadata(
+                {
+                    "song": "{} - {}".format(currentsong["artist"],
+                                             currentsong["title"]),
+                }
+            )
 
             print("{} - {} ({})".format(currentsong["artist"],
                                         currentsong["title"],
