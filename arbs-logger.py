@@ -160,8 +160,7 @@ def main(arg):
                 # we should now have a new song id
                 songid = db.getSongId(filename)
             else:
-                # we don't have validation in place just yet
-                pass
+                songid = song[0]
 
             db.addPlaylist(now.strftime("%Y-%m-%d %H:%M:%S"), songid)
 
