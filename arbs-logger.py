@@ -178,10 +178,10 @@ def main(arg):
                 }
             )
 
-            print("{} - {} ({})".format(currentsong["artist"],
-                                        currentsong["title"],
-                                        filename)
-            )
+            print("{}: {} - {} ({})".format(datetime.datetime.now(),
+                                            currentsong["artist"],
+                                            currentsong["title"],
+                                            filename))
 
 
 if __name__ == '__main__':
