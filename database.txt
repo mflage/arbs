@@ -1,0 +1,31 @@
+Proposed database schema
+
+# this is the master table that can contain reruns
+# either date or weekday has to be set
+
+# this will be the master table to select what to play
+
+reruns
+------
+id
+type
+date (can be null)
+weekday (can be null)
+time
+track
+active
+
+# this is for the different shows that can potentially create reruns
+
+shows
+-----
+id
+name
+file_path
+
+# this is the list of active teasers
+
+teasers
+-------
+id
+track
