@@ -66,7 +66,7 @@ def main(arg):
                 (intro + news).export(
                     cfg["news"]["newsfile"],
                     format="mp3",
-                    bitrate="256"
+                    bitrate="256k"
                 )
 
 
