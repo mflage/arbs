@@ -2,3 +2,4 @@ python-yaml
 python-mpd
 mysql-connector-python
 python-shout
+pydub
