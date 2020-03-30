@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import pydub
 import re
 import requests
 import sys
@@ -9,6 +8,7 @@ import yamale
 
 REGEX = r'^\<url\>(?P<url>.*)\<\/url\>$'
 CONFIGURATION_SCHEMA = "news_schema.yaml"
+
 
 def main(arg):
 
@@ -68,20 +68,10 @@ def main(arg):
                 if os.path.isfile(cfg["news"]["newsfile"]):
                     os.remove(cfg["news"]["newsfile"])
 
-                if "intro" in cfg["news"]:
-                    intro = pydub.AudioSegment.from_file(cfg["news"]["intro"])
-                    news = pydub.AudioSegment.from_file(local_path)
-
-                    (intro + news).export(
-                        cfg["news"]["newsfile"],
-                        format="mp3",
-                        bitrate="256k"
-                    )
-                else:
-                    os.link(
-                        local_path,
-                        cfg["news"]["newsfile"]
-                    )
+                os.link(
+                    local_path,
+                    cfg["news"]["newsfile"]
+                )
 
 
 if __name__ == '__main__':
