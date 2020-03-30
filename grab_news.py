@@ -5,19 +5,28 @@ import pydub
 import re
 import requests
 import sys
-import yaml
+import yamale
 
 REGEX = r'^\<url\>(?P<url>.*)\<\/url\>$'
-
+CONFIGURATION_SCHEMA = "news_schema.yaml"
 
 def main(arg):
 
-    # first argument is the configuration file
-    with open(arg[0], 'r') as configfile:
-        try:
-            cfg = yaml.load(configfile)
-        except yaml.scanner.ScannerError as e:
-            sys.exit("Error in configuration file: %s" % e)
+    # load schema and configuration
+    try:
+        schema = yamale.make_schema(CONFIGURATION_SCHEMA)
+        data = yamale.make_data(arg[0])
+    except FileNotFoundError as e:
+        sys.exit("File not found: {}".format(e.filename))
+    except IndexError:
+        sys.exit("Please provide a configuration as the first parameter.")
+
+    # validate and load the configuration file
+    try:
+        cfg = yamale.validate(schema, data, True)[0][0]
+    except ValueError as e:
+        print("Not validated correctly.")
+        sys.exit(e)
 
     r = requests.get(
         cfg["news"]["xml_url"],
@@ -52,22 +61,27 @@ def main(arg):
 
             if mp3_f.status_code == 200:
 
-                intro = pydub.AudioSegment.from_file(cfg["news"]["intro"])
-
                 with open(local_path, 'wb') as f:
                     for chunk in mp3_f:
                         f.write(chunk)
 
-                news = pydub.AudioSegment.from_file(local_path)
-
                 if os.path.isfile(cfg["news"]["newsfile"]):
                     os.remove(cfg["news"]["newsfile"])
 
-                (intro + news).export(
-                    cfg["news"]["newsfile"],
-                    format="mp3",
-                    bitrate="256k"
-                )
+                if "intro" in cfg["news"]:
+                    intro = pydub.AudioSegment.from_file(cfg["news"]["intro"])
+                    news = pydub.AudioSegment.from_file(local_path)
+
+                    (intro + news).export(
+                        cfg["news"]["newsfile"],
+                        format="mp3",
+                        bitrate="256k"
+                    )
+                else:
+                    os.link(
+                        local_path,
+                        cfg["news"]["newsfile"]
+                    )
 
 
 if __name__ == '__main__':
