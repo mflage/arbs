@@ -1,0 +1,7 @@
+news:
+    xml_url: str()
+    username: str()
+    password: str()
+    folder: str()
+    newsfile: str()
+    intro: str(required=False)
