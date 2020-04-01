@@ -1,7 +1,8 @@
 news:
-    xml_url: str()
+    filetype: enum("mp3", "mp3jingle")
     username: str()
     password: str()
     folder: str()
-    newsfile: str()
-    intro: str(required=False)
+    newsfile: str(required=False)
+---
+timerange: map(str(), str())

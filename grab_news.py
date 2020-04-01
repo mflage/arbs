@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 
 import os
-import re
 import requests
 import sys
 import yamale
+import xmltodict
 
-REGEX = r'^\<url\>(?P<url>.*)\<\/url\>$'
+# this needs to be fixed somehow, or maybe even embedded into the script
 CONFIGURATION_SCHEMA = "news_schema.yaml"
+
+# xmls
+XMLS = {
+    "mp3": "https://www.radionyhetene.no/download/nyheter/mp3/nyheter.xml",
+    "mp3jingle": "https://www.radionyhetene.no/download/nyheter/mp3jl/nyheter.xml"
+}
+
+FILENAME_TEMPLATE = "nyheter_{timestamp}.mp3"
 
 
 def main(arg):
@@ -29,7 +37,7 @@ def main(arg):
         sys.exit(e)
 
     r = requests.get(
-        cfg["news"]["xml_url"],
+        XMLS[cfg["news"]["filetype"]],
         auth=(
             cfg["news"]["username"],
             cfg["news"]["password"]
@@ -37,33 +45,33 @@ def main(arg):
     )
 
     if r.status_code == 200:
-        for line in r.text.split("\n"):
-            line = line.strip()
-            match = re.search(REGEX, line)
 
-            if not match:
-                continue
+        result = xmltodict.parse(r.text)
 
-            url = match.group("url")
+        time = result["ads"]["ad"]["time"]
+        url = result["ads"]["ad"]["url"]
 
-            filename = os.path.basename(url)
+        local_path = os.path.join(
+            cfg["news"]["folder"],
+            FILENAME_TEMPLATE.format(timestamp=time)
+        )
 
-            local_path = os.path.join(cfg["news"]["folder"], filename)
+        if os.path.isfile(local_path):
+            sys.exit(0)
 
-            if os.path.isfile(local_path):
-                continue
+        mp3_f = requests.get(
+            url,
+            auth=(cfg["news"]["username"], cfg["news"]["password"]),
+            stream=True
+        )
 
-            mp3_f = requests.get(
-                url,
-                auth=(cfg["news"]["username"], cfg["news"]["password"]),
-                stream=True
-            )
+        if mp3_f.status_code == 200:
 
-            if mp3_f.status_code == 200:
+            with open(local_path, 'wb') as f:
+                for chunk in mp3_f:
+                    f.write(chunk)
 
-                with open(local_path, 'wb') as f:
-                    for chunk in mp3_f:
-                        f.write(chunk)
+            if "newsfile" in cfg["news"]:
 
                 if os.path.isfile(cfg["news"]["newsfile"]):
                     os.remove(cfg["news"]["newsfile"])
