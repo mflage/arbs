@@ -3,8 +3,8 @@
 import datetime
 import os
 import requests
+import shutil
 import sys
-# i hate having to import time as well as datetime
 import time
 import yamale
 import xmltodict
@@ -82,7 +82,7 @@ def check_minute(now, valid_minutes):
 
 def logmsg(logfile, message):
     with open(logfile, 'a') as fp:
-        fp.write("[{timestamp}] {message}".format(
+        fp.write("[{timestamp}] {message}\n".format(
             timestamp=datetime.datetime.now(),
             message=message)
         )
@@ -107,26 +107,52 @@ def main(arg):
         sys.exit(e)
 
     debug = False
-    if "debug" in cfg["news"]:
-        if cfg["news"]["debug"]:
-            debug = True
+    logfile = None
+    keep = False
+
+    if "keep" in cfg["news"]:
+        if cfg["news"]["keep"]:
+            keep = True
+
+    if "logfile" in cfg["news"]:
+        logfile = cfg["news"]["logfile"]
+        # should we also enable debugging?
+        if "debug" in cfg["news"]:
+            if cfg["news"]["debug"]:
+                debug = True
 
     now = datetime.datetime.now()
 
     # check if this is inside the intervals specified
     if not check_if_inside(now, cfg["news"]["schedule"]):
+        if debug:
+            logmsg(
+                logfile,
+                "Not inside the scheduled check times"
+            )
         sys.exit(0)
 
     # check if we're at a minute when we should check for new files
     if not check_minute(now, cfg["news"]["minutes_to_check"]):
+        if debug:
+            log_minutes = " / ".join(cfg["news"]["minutes_to_check"])
+            logmsg(
+                logfile,
+                ("Not inside the minutes interval for checking: {}".format(log_minutes))
+            )
+            
         sys.exit(0)
 
-    # check if the previous file downloaded is fresh enough
-    if not check_statefile(now, cfg["news"]["statefile"]):
-        sys.exit(0)
+    xml = XMLS[cfg["news"]["filetype"]]
+
+    if debug:
+        logmsg(
+            logfile,
+            "Downloading new XML from: {}".format(xml)
+        )
 
     r = requests.get(
-        XMLS[cfg["news"]["filetype"]],
+        xml,
         auth=(
             cfg["news"]["username"],
             cfg["news"]["password"]
@@ -140,10 +166,19 @@ def main(arg):
         time = datetime.datetime.strptime(result["ads"]["ad"]["time"], TIMESTAMP_FORMAT)
         url = result["ads"]["ad"]["url"]
 
+        if debug:
+            logmsg(logfile, "XML parsed. Timestamp: {}, URL of file: {}".format(time, url))
+
         # check if there's a newer file than the one we already have downloaded
         last_downloaded = get_statefile_timestamp(cfg["news"]["statefile"])
 
         if last_downloaded == time:
+            if debug:
+                logmsg(
+                    logfile,
+                    ("The timestamp of the file online ({}) "
+                    "is the same as the one locally ({}) - ignoring".format(time, last_downloaded))
+                )
             sys.exit(0)
 
         local_path = os.path.join(
@@ -153,6 +188,9 @@ def main(arg):
 
         if os.path.isfile(local_path):
             sys.exit(0)
+
+        if debug:
+            logmsg(logfile, "Downloading {} to {}".format(url, local_path))
 
         mp3_f = requests.get(
             url,
@@ -166,15 +204,21 @@ def main(arg):
                 for chunk in mp3_f:
                     f.write(chunk)
 
+            if logfile:
+                logmsg(
+                    cfg["news"]["logfile"],
+                    "Downloaded {}".format(os.path.basename(local_path))
+                )
+
             if "newsfile" in cfg["news"]:
 
-                if os.path.isfile(cfg["news"]["newsfile"]):
-                    os.remove(cfg["news"]["newsfile"])
-
-                os.link(
+                shutil.copy(
                     local_path,
                     cfg["news"]["newsfile"]
                 )
+
+                if not keep:
+                    os.remove(local_path)
 
             with open(cfg["news"]["statefile"], 'w') as fp:
                 fp.write(time.strftime(TIMESTAMP_FORMAT))

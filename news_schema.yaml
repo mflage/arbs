@@ -4,5 +4,9 @@ news:
     password: str()
     folder: str()
     newsfile: str(required=False)
----
-timerange: map(str(), str())
+    schedule: map(regex("^\d{2}-\d{2}$"))
+    keep: bool(required=False)
+    logfile: str(required=False)
+    statefile: str()
+    minutes_to_check: list(regex("^\d{1,2}-\d{1,2}$"))
+    debug: bool(required=False)

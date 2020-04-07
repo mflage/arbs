@@ -5,6 +5,7 @@ LABEL maintainer="Marius Flage <marius@flage.org>"
 COPY requirements-news.txt /tmp/
 COPY news_schema.yaml /app/
 COPY grab_news.py /app/
+COPY default_configuration.cfg /app/
 COPY entrypoint.sh /
 RUN apt-get update && apt-get install -y cron
 RUN pip3 install -r /tmp/requirements-news.txt

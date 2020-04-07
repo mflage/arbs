@@ -1,17 +1,14 @@
 #!/bin/bash
 
-#CONFIGURATION_FILE=/data/news.cfg
+CONFIGURATION_FILE=/data/news.cfg
 
 # Start the run once job.
 echo "Grab news container has been started"
 
-#if [ ! -f "$CONFIGURATION_FILE"];
-#then
-#    cp /app/etc/default_configuration.cfg /data
-#fi
-
-# copy in a skeleton configuration
-# cp /app/etc/default_configuration.cfg /data/nyheter/
+if [ ! -f "$CONFIGURATION_FILE" ]; then
+    echo "Copying the default configuration to /data"
+    cp /app/default_configuration.cfg /data/
+fi
 
 # Setup a cron schedule
 # it's up to the script itself to decide if it should actually connect and check for new files
