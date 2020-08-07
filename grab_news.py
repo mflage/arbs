@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import pytz
 import requests
 import shutil
 import sys
@@ -80,10 +81,10 @@ def check_minute(now, valid_minutes):
 
     return False
 
-def logmsg(logfile, message):
+def logmsg(logfile, message, timezone):
     with open(logfile, 'a') as fp:
         fp.write("[{timestamp}] {message}\n".format(
-            timestamp=datetime.datetime.now(),
+            timestamp=datetime.datetime.now(pytz.timezone(timezone)),
             message=message)
         )
 
@@ -101,10 +102,17 @@ def main(arg):
 
     # validate and load the configuration file
     try:
-        cfg = yamale.validate(schema, data, True)[0][0]
+        result = yamale.validate(schema, data, True)
     except ValueError as e:
         print("Not validated correctly.")
         sys.exit(e)
+
+    if not result[0].isValid():
+        print("Not validated correctly.")
+        sys.exit(1)
+
+    # this feels a bit awkward
+    cfg = data[0][0]
 
     debug = False
     logfile = None
@@ -121,14 +129,15 @@ def main(arg):
             if cfg["news"]["debug"]:
                 debug = True
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(pytz.timezone(cfg["news"]["timezone"]))
 
     # check if this is inside the intervals specified
     if not check_if_inside(now, cfg["news"]["schedule"]):
         if debug:
             logmsg(
                 logfile,
-                "Not inside the scheduled check times"
+                "Not inside the scheduled check times",
+                cfg["news"]["timezone"]
             )
         sys.exit(0)
 
@@ -138,7 +147,9 @@ def main(arg):
             log_minutes = " / ".join(cfg["news"]["minutes_to_check"])
             logmsg(
                 logfile,
-                ("Not inside the minutes interval for checking: {}".format(log_minutes))
+                ("Not inside the minutes interval for checking: {}".format(log_minutes)),
+                cfg["news"]["timezone"]
+
             )
             
         sys.exit(0)
@@ -148,7 +159,8 @@ def main(arg):
     if debug:
         logmsg(
             logfile,
-            "Downloading new XML from: {}".format(xml)
+            "Downloading new XML from: {}".format(xml),
+            cfg["news"]["timezone"]
         )
 
     r = requests.get(
@@ -167,7 +179,11 @@ def main(arg):
         url = result["ads"]["ad"]["url"]
 
         if debug:
-            logmsg(logfile, "XML parsed. Timestamp: {}, URL of file: {}".format(time, url))
+            logmsg(
+                logfile,
+                "XML parsed. Timestamp: {}, URL of file: {}".format(time, url),
+                cfg["news"]["timezone"]
+            )
 
         # check if there's a newer file than the one we already have downloaded
         last_downloaded = get_statefile_timestamp(cfg["news"]["statefile"])
@@ -177,7 +193,8 @@ def main(arg):
                 logmsg(
                     logfile,
                     ("The timestamp of the file online ({}) "
-                    "is the same as the one locally ({}) - ignoring".format(time, last_downloaded))
+                    "is the same as the one locally ({}) - ignoring".format(time, last_downloaded)),
+                    cfg["news"]["timezone"]
                 )
             sys.exit(0)
 
@@ -190,7 +207,11 @@ def main(arg):
             sys.exit(0)
 
         if debug:
-            logmsg(logfile, "Downloading {} to {}".format(url, local_path))
+            logmsg(
+                logfile,
+                "Downloading {} to {}".format(url, local_path),
+                cfg["news"]["timezone"]
+            )
 
         mp3_f = requests.get(
             url,
@@ -207,7 +228,8 @@ def main(arg):
             if logfile:
                 logmsg(
                     cfg["news"]["logfile"],
-                    "Downloaded {}".format(os.path.basename(local_path))
+                    "Downloaded {}".format(os.path.basename(local_path)),
+                    cfg["news"]["timezone"]
                 )
 
             if "newsfile" in cfg["news"]:

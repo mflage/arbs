@@ -10,3 +10,4 @@ news:
     statefile: str()
     minutes_to_check: list(regex("^\d{1,2}-\d{1,2}$"))
     debug: bool(required=False)
+    timezone: str()
