@@ -12,22 +12,22 @@ from mpd import MPDClient
 """this script will run every minute by cron and check if there are
 any reruns that should happen within the next minute"""
 
-RERUNS = "/tmp/reruns.txt"
-
+# some constants
 RERUN = "R %a %H %M"
 ONCE = "O %d %m %H %M"
 STREAM = "S %d %m %H %M"
+
 
 def fader(level, fadetime, client):
     between = 0.10
 
     currentvol = int(client.status()["volume"])
-    
+
     maxvol = max(level, currentvol)
     minvol = min(level, currentvol)
-    
+
     diff = maxvol - minvol
-    
+
     if fadetime == 0:
         client.setvol(level)
     else:
@@ -57,12 +57,16 @@ def fader(level, fadetime, client):
                 client.setvol(new_level)
                 time.sleep(between)
         client.setvol(level)
-                                                                                                                                                                        
+
+
+def convert_filename(filename):
+    return filename.replace("/data/audio/", "local:track:")
+
 
 def check_reruns(filename, timestamp):
 
     to_be_played = []
-    
+
     with open(filename, 'r') as fp:
         for line in fp:
             line = line.strip()
@@ -71,16 +75,25 @@ def check_reruns(filename, timestamp):
             (when, what) = line.split(" - ", 1)
 
             if timestamp.strftime(ONCE) == when:
+                if what.startswith("/"):
+                    what = convert_filename(what)
                 to_be_played.append(what)
             elif timestamp.strftime(RERUN) == when:
                 to_be_played.append(what)
 
     return to_be_played
 
+
 def main(arg):
 
+    with open(arg[0], 'r') as configfile:
+        try:
+            cfg = yaml.load(configfile)
+        except yaml.scanner.ScannerError, e:
+            sys.exit("Error in configuration file: %s" % e)
+
     while 1:
-        
+
         time.sleep(1)
 
         now = datetime.datetime.now()
@@ -88,24 +101,24 @@ def main(arg):
         then = then.replace(second=0).replace(microsecond=0)
 
         next_minute = check_reruns(
-            RERUNS,
+            cfg["reruns_file"],
             then
         )
-        
+
         if not next_minute:
             continue
-        
+
         client = MPDClient()
         client.timeout = 60
         client.idletimeout = None
         client.connect("localhost", 6600)
-        
+
         status = client.status()
-        
+
         playback = status["time"]
-        
+
         (played, total) = status["time"].split(":")
-        
+
         left = int(total) - int(played)
 
         left_of_minute = (then - now).total_seconds()
